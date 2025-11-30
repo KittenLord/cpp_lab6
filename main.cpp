@@ -36,6 +36,7 @@ int runServer() {
     printf("%p %d\n", data, errno);
 
     SharedData *sharedData = (SharedData *)data;
+    sharedData->mutex = PTHREAD_MUTEX_INITIALIZER;
 
     // NOTE: file descriptor can be safely closed
     // https://man7.org/linux/man-pages/man3/shm_open.3.html
@@ -49,6 +50,7 @@ int runServer() {
 
         printf("\e[2J\e[H");
 
+        pthread_mutex_lock(&sharedData->mutex);
         printf("Time: %d\n", time);
         time += 1;
 
@@ -66,6 +68,7 @@ int runServer() {
             }
             printf(" ]\n");
         }
+        pthread_mutex_unlock(&sharedData->mutex);
         std::cout << std::flush;
     }
 }
@@ -104,7 +107,9 @@ int runClient() {
         length = CANVAS_W * CANVAS_H - offset;
     }
 
-    memcpy(((char *)sharedData->canvas) + offset, message.data(), length);
+    pthread_mutex_lock(&sharedData->mutex);
+        memcpy(((char *)sharedData->canvas) + offset, message.data(), length);
+    pthread_mutex_unlock(&sharedData->mutex);
     return 0;
 }
 
